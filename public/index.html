@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>odekake-app</title>
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales/ja.global.min.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #5bc0be;
+      --primary-gradient: linear-gradient(135deg, #7ad5d3 0%, #4da0a0 100%);
+    }
+    body {
+      margin: 0;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f4f7f6;
+      color: #333;
+    }
+    header {
+      background: var(--primary-gradient);
+      color: white;
+      padding: 15px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 15px;
+    }
+    .top-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .filter-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .filter-group select {
+      padding: 8px 15px;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .add-btn {
+      background-color: #4ecdc4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+    .add-btn:hover {
+      background-color: #45b7aa;
+    }
+    .places-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 25px;
+    }
+    @media (max-width: 1024px) {
+      .places-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    .place-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border-top: 5px solid #ccc;
+      transition: transform 0.2s;
+    }
+    .drag-handle {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: grab;
+      z-index: 10;
+      user-select: none;
+    }
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+    .thumbnail {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .thumbnail-placeholder {
+      width: 100%;
+      height: 180px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1.3rem;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+      text-align: center;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .card-content {
+      padding: 20px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .place-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 1.3rem;
+    }
+    .place-url {
+      font-size: 0.85rem;
+      color: #3498db;
+      text-decoration: none;
+      margin-bottom: 10px;
+      display: inline-block;
+      word-break: break-all;
+    }
+    .desc {
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 15px;
+      line-height: 1.4;
+      flex-grow: 1;
+    }
+    .timing {
+      font-size: 0.85rem;
+      color: #e67e22;
+      font-weight: bold;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .tags {
+      margin-bottom: 10px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      color: white;
+      font-weight: bold;
+    }
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 10px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+    }
+    .author-info {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 5px;
+    }
+    .action-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: #666;
+      padding: 5px;
+      border-radius: 5px;
+      transition: 0.2s;
+    }
+    .icon-btn:hover {
+      background: #f0f0f0;
+    }
+    .comment-btn-wrapper {
+      width: 100%;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .comment-btn {
+      background: #f0f2f5;
+      border: none;
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      color: #555;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .comment-btn:hover {
+      background: #e4e6e9;
+    }
+    
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: 0.3s;
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 450px;
+      transform: translateY(20px);
+      transition: 0.3s;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-overlay.show .modal-content {
+      transform: translateY(0);
+    }
+    .form-group {
+      margin-bottom: 15px;
+      position: relative;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .search-badge {
+      background: #f1f3f4;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      color: #555;
+      position: absolute;
+      right: 10px;
+      top: 8px;
+      pointer-events: none;
+    }
+    .pac-container {
+      border-radius: 8px;
+      border: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-top: 5px;
+      font-family: inherit;
+      z-index: 10000 !important;
+    }
+    .modal-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 25px;
+    }
+    .submit-btn {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .cancel-btn {
+      background-color: #ccc;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .comment-area {
+      flex-grow: 1;
+      overflow-y: auto;
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      min-height: 200px;
+      max-height: 300px;
+    }
+    .comment-item {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eaeaea;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .comment-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .comment-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .comment-text {
+      font-size: 0.95rem;
+      color: #333;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+    .comment-delete-btn {
+      align-self: flex-end;
+      background: #ffeaa7;
+      border: none;
+      cursor: pointer;
+      color: #d63031;
+      font-size: 0.85rem;
+      font-weight: bold;
+      opacity: 0.8;
+      border-radius: 6px;
+      padding: 4px 10px;
+      transition: 0.2s;
+      white-space: nowrap;
+      margin-top: 4px;
+    }
+    .comment-delete-btn:hover {
+      opacity: 1;
+    }
+    .comment-input-group {
+      display: flex;
+      gap: 10px;
+    }
+    .comment-input-group input {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      outline: none;
+    }
+    .send-comment-btn {
+      background: #4ecdc4;
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .tab-container {
+      background: white;
+      padding: 0;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+    .tab-buttons {
+      display: flex;
+      border-bottom: 1px solid #eee;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #666;
+      transition: 0.2s;
+      border-bottom: 3px solid transparent;
+    }
+    .tab-btn:hover {
+      background: #f8f9fa;
+    }
+    .tab-btn.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      background: rgba(91, 192, 190, 0.05);
+    }
+    .tab-content {
+      display: none;
+      padding: 20px;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    #calendar {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    .fc-event {
+      cursor: pointer;
+      background: #4ecdc4 !important;
+      border: none !important;
+      border-radius: 12px !important;
+      padding: 2px 6px !important;
+      font-size: 0.8rem !important;
+    }
+    .fc-daygrid-day {
+      cursor: pointer;
+    }
+    .fc-daygrid-day:hover {
+      background: #f8f9fa;
+    }
+    
+    .fc-daygrid-body .fc-daygrid-row:nth-child(6) { display: none !important; }
+    .fc-daygrid-body .fc-daygrid-row:nth-child(n+7) { display: none !important; }
+
+    .fc-day-today {
+      background: #fff3cd !important;
+      border: 2px solid #ffc107 !important;
+    }
+    .fc-day-today .fc-daygrid-day-number {
+      font-weight: bold;
+      color: #856404;
+    }
+    .fc-day-past {
+      background: #f8f9fa !important;
+      opacity: 0.5;
+      cursor: not-allowed !important;
+    }
+    .fc-day-past .fc-daygrid-day-number {
+      color: #6c757d;
+    }
+    .fc-day-past:hover {
+      background: #f8f9fa !important;
+    }
+    .fc-day-other {
+      background-color: transparent !important;
+      opacity: 1 !important;
+    }
+    .fc-day-other .fc-daygrid-day-top {
+      opacity: 1 !important;
+    }
+    .fc-day-other .fc-daygrid-day-number {
+      color: #333 !important;
+    }
+    
+    .fc-day-sat { background-color: #fff8e1 !important; }
+    .fc-day-sat .fc-daygrid-day-number { color: #ff9800 !important; }
+    .fc-day-sun { background-color: #ffebee !important; }
+    .fc-day-sun .fc-daygrid-day-number { color: #f44336 !important; }
+    .fc-day-past.fc-day-sat { background-color: #f5f5f5 !important; }
+    .fc-day-past.fc-day-sun { background-color: #f5f5f5 !important; }
+
+    .fc-daygrid-day-number::after { content: none !important; }
+
+    .free-day-list {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .free-day-item {
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      border-left: 4px solid #4ecdc4;
+      position: relative;
+      padding-right: 80px;
+    }
+    .free-day-item:last-child {
+      margin-bottom: 0;
+    }
+    .free-day-author {
+      font-weight: bold;
+      color: #333;
+    }
+    .free-day-memo {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 4px;
+    }
+    .free-day-delete-btn {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #ffeaa7;
+      border: none;
+      cursor: pointer;
+      color: #d63031;
+      width: auto;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+    .free-day-delete-btn:hover {
+      opacity: 1;
+    }
+
+    .want-to-go-section {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+    .want-btn {
+      background: #e8f4f8;
+      color: #2196f3;
+      border: 1px solid #b3e5fc;
+      padding: 6px 12px;
+      border-radius: 15px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: bold;
+      transition: 0.2s;
+      margin-bottom: 8px;
+    }
+    .want-btn:hover {
+      background: #b3e5fc;
+    }
+    .want-btn.active {
+      background: #2196f3;
+      color: white;
+      border-color: #1976d2;
+    }
+    .want-to-go-users {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 5px;
+    }
+    .want-user-tag {
+      background: #f0f2f5;
+      color: #555;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      border: 1px solid #ddd;
+    }
+    .clickable-author {
+      color: #2196f3;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .clickable-author:hover {
+      color: #1976d2;
+    }
+
+    /* ★ スマホ向けレスポンシブデザイン（2列表示＆はみ出し防止） */
+    @media (max-width: 600px) {
+      .top-controls {
+        flex-direction: column;
+        padding: 15px 10px;
+      }
+      .filter-group {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .filter-group select {
+        width: 100%;
+        padding: 8px 5px;
+        font-size: 0.8rem;
+      }
+      .filter-group select:nth-child(3) {
+        grid-column: span 2;
+      }
+      .add-btn {
+        width: 100%;
+        margin-top: 5px;
+      }
+      .places-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+      .thumbnail, .thumbnail-placeholder {
+        height: 200px;
+      }
+      .thumbnail-placeholder {
+        font-size: 0.9rem;
+      }
+      .card-content {
+        padding: 10px;
+      }
+      .place-card {
+        min-height: unset;
+      }
+      .place-card h3 {
+        font-size: 1.0rem;
+        margin-bottom: 4px;
+        line-height: 1.2;
+      }
+      .place-url {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+      }
+      .desc {
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .tag {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+      }
+      .action-group {
+        gap: 5px;
+      }
+      .icon-btn {
+        font-size: 0.9rem;
+        padding: 3px;
+      }
+      .comment-btn {
+        padding: 8px 4px;
+        font-size: 0.75rem;
+      }
+      .want-btn {
+        font-size: 0.75rem;
+        padding: 6px;
+        margin-bottom: 4px;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .want-user-tag {
+        font-size: 0.7rem;
+        padding: 4px 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🗺️ odekake-app</h1>
+  </header>
+
+  <div class="container">
+    
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active" id="placesTab">📍 行きたい場所</button>
+        <button class="tab-btn" id="calendarTab">📅 暇な日カレンダー</button>
+      </div>
+      
+      <div class="tab-content active" id="placesContent">
+        <div class="top-controls">
+          <div class="filter-group">
+            <select id="filterCategory">
+              <option value="all">すべてのカテゴリ</option>
+              <option value="飲食店">🍽️ 飲食店</option>
+              <option value="自然・花">🌸 自然・花</option>
+              <option value="アート・展示">🖼️ アート・展示</option>
+              <option value="動物園・水族館">🐬 動物園・水族館</option>
+              <option value="アクティビティ・体験">🎢 アクティビティ・体験</option>
+              <option value="歴史">🏯 歴史</option>
+              <option value="その他">📌 その他</option>
+            </select>
+            <select id="sortOrder">
+              <option value="seasonal_manual" selected>おすすめ順（今の季節優先・並び替え可）</option>
+              <option value="newest">新着順</option>
+              <option value="want-to-go">行きたい人多い順</option>
+              <option value="rating">期待度が高い順</option>
+            </select>
+            <select id="viewFilter">
+              <option value="all">全員のリスト</option>
+              <option value="my-want-to-go">自分の関わっているリスト</option>
+            </select>
+          </div>
+          <button class="add-btn" id="openModalBtn">＋ 追加する</button>
+        </div>
+        <div class="places-grid" id="placesGrid"><p>読み込み中...</p></div>
+      </div>
+
+      <div class="tab-content" id="calendarContent">
+        <div id="calendar"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="modal-overlay" id="addModal">
+    <div class="modal-content">
+      <h3 id="modalTitle" style="margin-top:0;">場所を追加</h3>
+      
+      <div class="form-group">
+        <label>投稿者名</label>
+        <input type="text" id="inputAuthor" placeholder="あなたの名前">
+      </div>
+      
+      <div class="form-group">
+        <label>場所の名前 (Google検索対応)</label>
+        <input type="text" id="inputName" placeholder="例: ぐんまフラワーパーク">
+        <span class="search-badge">Google連携</span>
+      </div>
+
+      <div class="form-group">
+        <label>公式サイト・紹介ページのURL <span id="urlStatus" style="font-weight: normal; font-size: 0.8rem; color: #ff6b6b; margin-left: 10px;"></span></label>
+        <input type="url" id="inputOfficialUrl" placeholder="https://... (画像取得に使われます)">
+      </div>
+      <div class="form-group">
+        <label>Google MapのURL</label>
+        <input type="url" id="inputGmapUrl" placeholder="場所を検索すると自動入力されます" readonly style="background-color: #f8f9fa;">
+        <input type="hidden" id="inputImageUrl" value="">
+      </div>
+
+      <div class="form-group">
+        <label>カテゴリ</label>
+        <select id="inputCategory">
+          <option value="飲食店">🍽️ 飲食店</option>
+          <option value="自然・花">🌸 自然・花</option>
+          <option value="アート・展示">🖼️ アート・展示</option>
+          <option value="動物園・水族館">🐬 動物園・水族館</option>
+          <option value="アクティビティ・体験">🎢 アクティビティ・体験</option>
+          <option value="歴史">🏯 歴史</option>
+          <option value="その他">📌 その他</option>
+        </select>
+      </div>
+      
+      <div class="form-group" id="seasonGroup">
+        <label>おすすめの季節・時期（任意）</label>
+        <input type="text" id="inputSeason" placeholder="例: いつでも、春、10月中旬など">
+      </div>
+
+      <div class="form-group" id="dateGroup" style="display: none;">
+        <label>開催期間</label>
+        <input type="text" id="inputDate" placeholder="日付を選択...">
+      </div>
+
+      <div class="form-group">
+        <label>メモ・おすすめポイント</label>
+        <textarea id="inputDesc" rows="3" placeholder="ここが気になる！などのメモ"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>期待度 (1〜5)</label>
+        <select id="inputRating">
+          <option value="5">⭐⭐⭐⭐⭐ 5</option>
+          <option value="4">⭐⭐⭐⭐ 4</option>
+          <option value="3" selected>⭐⭐⭐ 3</option>
+          <option value="2">⭐⭐ 2</option>
+          <option value="1">⭐ 1</option>
+        </select>
+      </div>
+
+      <div class="modal-buttons">
+        <button class="cancel-btn" id="closeModalBtn">キャンセル</button>
+        <button class="submit-btn" id="savePlaceBtn">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="commentModal">
+    <div class="modal-content" style="height: 80vh;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="margin:0;">💬 コメント</h3>
+        <button id="closeCommentBtn" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
+      </div>
+      
+      <div class="comment-area" id="commentList">
+        <p style="text-align:center; color:#888;">読み込み中...</p>
+      </div>
+      
+      <div class="comment-input-group">
+        <input type="text" id="newCommentInput" placeholder="コメントを入力...">
+        <button class="send-comment-btn" id="sendCommentBtn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="freeDayModal">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="margin:0;" id="freeDayModalTitle">空き日</h3>
+        <button id="closeFreeDayBtn" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
+      </div>
+      
+      <div class="free-day-list" id="freeDayList">
+        <p style="text-align:center; color:#888;">読み込み中...</p>
+      </div>
+
+      <div class="form-group">
+        <label>あなたの名前</label>
+        <input type="text" id="freeDayAuthor" placeholder="名前を入力">
+      </div>
+      <div class="form-group">
+        <label>メモ（任意）</label>
+        <textarea id="freeDayMemo" rows="2" placeholder="午後からOK、〇〇に行きたい、など"></textarea>
+      </div>
+      <div class="modal-buttons">
+        <button class="cancel-btn" id="cancelFreeDayBtn">キャンセル</button>
+        <button class="submit-btn" id="saveFreeDayBtn">この日を登録</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, updateDoc, increment, query, orderBy, where, onSnapshot, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC8am3Xc6NEFYN4Az-kHOxqK5TgiXbo8aQ",
+      authDomain: "aipracti.firebaseapp.com",
+      projectId: "aipracti",
+      storageBucket: "aipracti.firebasestorage.app",
+      messagingSenderId: "868718711020",
+      appId: "1:868718711020:web:f48f6f34b31a48859595c9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let editingId = null;
+    let allPlacesArray = [];
+    let currentCommentPlaceId = null;
+    let unsubscribeComments = null;
+    let calendar = null;
+    let unsubscribeFreeDays = null;
+    let currentFreeDayDate = null;
+    let currentFilterUser = null; 
+
+    flatpickr("#inputDate", {
+      mode: "range",
+      locale: "ja",
+      dateFormat: "Y/m/d",
+      placeholder: "日付を選択してください"
+    });
+
+    // ★Google Places Autocomplete
+    let autocomplete;
+    function initAutocomplete() {
+      const inputName = document.getElementById("inputName");
+      if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+        const gunmaCenter = new google.maps.LatLng(36.3911, 139.0608);
+        const gunmaBounds = new google.maps.Circle({
+          center: gunmaCenter,
+          radius: 50000 
+        }).getBounds();
+        
+        autocomplete = new google.maps.places.Autocomplete(inputName, {
+          fields: ["name", "url", "photos", "types", "formatted_address"],
+          componentRestrictions: { country: "jp" }, 
+          bounds: gunmaBounds, 
+          strictBounds: false 
+        });
+        
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          if (!place.name) return;
+          
+          inputName.value = place.name;
+          
+          if (place.url) {
+            document.getElementById("inputGmapUrl").value = place.url;
+          }
+          
+          let photoUrl = "";
+          if (place.photos && place.photos.length > 0) {
+            for (let i = 0; i < place.photos.length; i++) {
+              const photo = place.photos[i];
+              const url = photo.getUrl({ maxWidth: 400 });
+              
+              if (url && 
+                  !url.includes("maps.gstatic.com") && 
+                  !url.includes("staticmap") && 
+                  !url.includes("default") && 
+                  !url.includes("generic") && 
+                  !url.includes("new-york") &&
+                  !url.includes("newyork") &&
+                  !url.includes("manhattan") &&
+                  !url.includes("nyc") &&
+                  !url.includes("placeholder") &&
+                  !url.includes("photo-placeholder") &&
+                  !url.includes("no-photo") &&
+                  !url.includes("missing") &&
+                  !url.includes("unavailable") &&
+                  !url.match(/default/i) &&
+                  !url.match(/generic/i) &&
+                  url.length > 60 && 
+                  !url.includes("photo?0") && 
+                  !url.includes("s=0") && 
+                  url.includes("lh3.googleusercontent.com") 
+              ) {
+                photoUrl = url;
+                break; 
+              }
+            }
+          }
+          
+          if (photoUrl) {
+            document.getElementById("inputImageUrl").value = photoUrl;
+          } else {
+            document.getElementById("inputImageUrl").value = "";
+          }
+          
+          const detectedCategory = detectCategory(place);
+          if (detectedCategory) {
+            document.getElementById("inputCategory").value = detectedCategory;
+            document.getElementById("dateGroup").style.display = "none";
+            document.getElementById("seasonGroup").style.display = "block";
+          }
+        });
+      }
+    }
+    
+    function detectCategory(place) {
+      const name = (place.name || "").toLowerCase();
+      const types = place.types || [];
+      if (types.includes("restaurant") || types.includes("cafe") || types.includes("food") || name.includes("カフェ") || name.includes("レストラン") || name.includes("食堂") || name.includes("ランチ") || name.includes("ディナー") || name.includes("居酒屋") || name.includes("スイーツ")) return "飲食店";
+      if (types.includes("park") || types.includes("natural_feature") || name.includes("山") || name.includes("川") || name.includes("海") || name.includes("花") || name.includes("公園") || name.includes("高原") || name.includes("湖") || name.includes("森")) return "自然・花";
+      if (types.includes("museum") || types.includes("art_gallery") || name.includes("美術館") || name.includes("博物館") || name.includes("展") || name.includes("ギャラリー")) return "アート・展示";
+      if (types.includes("zoo") || types.includes("aquarium") || name.includes("動物園") || name.includes("水族館") || name.includes("牧場")) return "動物園・水族館";
+      if (types.includes("amusement_park") || name.includes("遊園地") || name.includes("体験") || name.includes("アクティビティ") || name.includes("サウナ") || name.includes("温泉") || name.includes("スパ")) return "アクティビティ・体験";
+      if (name.includes("城") || name.includes("神社") || name.includes("寺") || name.includes("史跡") || name.includes("遺跡") || name.includes("歴史")) return "歴史";
+      return "";
+    }
+    
+    setTimeout(initAutocomplete, 1000);
+
+    function stringToColor(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const hue = Math.abs(hash % 360);
+      const saturation = 25 + Math.abs(hash % 30); 
+      const lightness = 70 + Math.abs(hash % 15); 
+      return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    }
+
+    document.getElementById("placesTab").addEventListener("click", () => {
+      document.getElementById("placesTab").classList.add("active");
+      document.getElementById("calendarTab").classList.remove("active");
+      document.getElementById("placesContent").classList.add("active");
+      document.getElementById("calendarContent").classList.remove("active");
+    });
+
+    document.getElementById("calendarTab").addEventListener("click", () => {
+      document.getElementById("placesTab").classList.remove("active");
+      document.getElementById("calendarTab").classList.add("active");
+      document.getElementById("placesContent").classList.remove("active");
+      document.getElementById("calendarContent").classList.add("active");
+      
+      if (!calendar) {
+        initCalendar();
+      }
+    });
+
+    function initCalendar() {
+      const calendarEl = document.getElementById('calendar');
+      
+      // 2026年日本の祝日データ
+      const japaneseHolidays2026 = {
+        '2026-01-01': '元日',
+        '2026-01-12': '成人の日',
+        '2026-02-11': '建国記念の日',
+        '2026-02-23': '天皇誕生日',
+        '2026-03-20': '春分の日',
+        '2026-04-29': '昭和の日',
+        '2026-05-03': '憲法記念日',
+        '2026-05-04': 'みどりの日',
+        '2026-05-05': 'こどもの日',
+        '2026-07-20': '海の日',
+        '2026-08-11': '山の日',
+        '2026-09-15': '敬老の日',
+        '2026-09-23': '秋分の日',
+        '2026-10-12': 'スポーツの日',
+        '2026-11-03': '文化の日',
+        '2026-11-23': '勤労感謝の日'
+      };
+      
+      // 祝日イベントを作成
+      const holidayEvents = Object.entries(japaneseHolidays2026).map(([date, title]) => ({
+        title: title,
+        start: date,
+        allDay: true,
+        backgroundColor: '#ff6b6b',
+        borderColor: '#ff6b6b',
+        textColor: 'white',
+        editable: false
+      }));
+      
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'ja',
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+          left: 'prev,next',
+          center: 'title',
+          right: ''
+        },
+        height: 'auto',
+        fixedWeekCount: false,
+        showNonCurrentDates: false,
+        dayCellContent: function(arg) {
+          const date = new Date(arg.date);
+          const day = date.getDate();
+          return { html: `<div class="fc-daygrid-day-number">${day}</div>` };
+        },
+        dateClick: function(info) {
+          const clickedDate = new Date(info.dateStr);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (clickedDate < today) return; 
+          openFreeDayModal(info.dateStr);
+        },
+        eventClick: function(info) {
+          openFreeDayModal(info.event.startStr.split('T')[0]);
+        },
+        dayCellDidMount: function(info) {
+          const cellDate = new Date(info.date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (cellDate < today) {
+            info.el.classList.add('fc-day-past');
+          }
+          if (cellDate.toDateString() === today.toDateString()) {
+            info.el.classList.add('fc-day-today');
+          }
+        },
+        events: holidayEvents,
+        eventSources: [holidayEvents]
+      });
+      calendar.render();
+      loadFreeDays();
+    }
+
+    function loadFreeDays() {
+      if (unsubscribeFreeDays) unsubscribeFreeDays();
+      
+      const q = query(collection(db, "freeDays"), orderBy("createdAt", "desc"));
+      unsubscribeFreeDays = onSnapshot(q, (snapshot) => {
+        const events = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const userColor = stringToColor(data.author);
+          events.push({
+            id: doc.id,
+            title: data.author,
+            date: data.date,
+            backgroundColor: userColor,
+            borderColor: userColor,
+            extendedProps: {
+              author: data.author,
+              memo: data.memo
+            }
+          });
+        });
+        
+        if (calendar) {
+          calendar.removeAllEvents();
+          calendar.addEventSource(holidayEvents);
+          calendar.addEventSource(events);
+        }
+      });
+    }
+
+    function openFreeDayModal(dateStr) {
+      currentFreeDayDate = dateStr;
+      document.getElementById("freeDayModalTitle").textContent = `📅 ${dateStr}`;
+      document.getElementById("freeDayAuthor").value = localStorage.getItem("userName") || "";
+      document.getElementById("freeDayMemo").value = "";
+      document.getElementById("freeDayModal").classList.add("show");
+      loadFreeDayDetails(dateStr);
+    }
+
+    function loadFreeDayDetails(dateStr) {
+      const freeDayList = document.getElementById("freeDayList");
+      freeDayList.innerHTML = '<p style="text-align:center; color:#888;">読み込み中...</p>';
+      
+      const q = query(collection(db, "freeDays"));
+      getDocs(q).then((snapshot) => {
+        freeDayList.innerHTML = "";
+        
+        const filteredDocs = snapshot.docs
+          .filter(doc => doc.data().date === dateStr)
+          .sort((a, b) => {
+            const aTime = a.data().createdAt?.toMillis ? a.data().createdAt.toMillis() : new Date(a.data().createdAt).getTime();
+            const bTime = b.data().createdAt?.toMillis ? b.data().createdAt.toMillis() : new Date(b.data().createdAt).getTime();
+            return bTime - aTime;
+          });
+
+        if (filteredDocs.length === 0) {
+          freeDayList.innerHTML = '<p style="text-align:center; color:#888;">まだ登録されていません</p>';
+          return;
+        }
+
+        const myName = localStorage.getItem("userName") || "";
+        
+        filteredDocs.forEach(doc => {
+          const data = doc.data();
+          const isMyEntry = data.author === myName;
+          
+          const deleteBtnHtml = isMyEntry ? 
+            `<button class="comment-delete-btn free-day-delete-btn" data-doc-id="${doc.id}">削除</button>` : '';
+
+          freeDayList.innerHTML += `
+            <div class="free-day-item">
+              <div class="free-day-author">${data.author}</div>
+              ${data.memo ? `<div class="free-day-memo">${data.memo}</div>` : ''}
+              ${deleteBtnHtml}
+            </div>
+          `;
+        });
+      }).catch(error => {
+         console.error("空き日の読み込みエラー:", error);
+         freeDayList.innerHTML = `<p style="text-align:center; color:#ff6b6b;">読み込みに失敗しました。</p>`;
+      });
+    }
+
+    const categoryColors = {
+      "飲食店": { tag: "#e67e22", bg: "linear-gradient(135deg, #f6d365 0%, #fda085 100%)" },
+      "自然・花": { tag: "#2ecc71", bg: "linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)" },
+      "アート・展示": { tag: "#9b59b6", bg: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)" },
+      "動物園・水族館": { tag: "#3498db", bg: "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)" },
+      "アクティビティ・体験": { tag: "#e74c3c", bg: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)" },
+      "歴史": { tag: "#f1c40f", bg: "linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)", text: "#333" },
+      "その他": { tag: "#95a5a6", bg: "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)" }
+    };
+
+    async function loadPlaces() {
+      try {
+        const querySnapshot = await getDocs(collection(db, "places"));
+        allPlacesArray = [];
+        if (querySnapshot.empty) {
+          document.getElementById("placesGrid").innerHTML = "<p>まだ場所が登録されていません。</p>";
+          return;
+        }
+        querySnapshot.docs.forEach((document) => {
+          const data = document.data();
+          let timeNum = 0;
+          if (data.createdAt) {
+            if (typeof data.createdAt.toMillis === 'function') {
+              timeNum = data.createdAt.toMillis();
+            } else {
+              timeNum = new Date(data.createdAt).getTime();
+            }
+          }
+          allPlacesArray.push({ id: document.id, ...data, commentCount: data.commentCount || 0, createdTime: timeNum || 0 });
+        });
+        renderPlaces();
+      } catch (error) {
+        console.error("データ取得エラー:", error);
+      }
+    }
+
+    function renderPlaces() {
+      const placesGrid = document.getElementById("placesGrid");
+      placesGrid.innerHTML = "";
+      
+      const filterCat = document.getElementById("filterCategory").value;
+      const sortOrd = document.getElementById("sortOrder").value;
+      const viewFilter = document.getElementById("viewFilter").value;
+
+      let filtered = [...allPlacesArray];
+
+      if (filterCat !== "all") {
+        filtered = filtered.filter(p => p.category === filterCat);
+      }
+      
+      if (viewFilter === "my-want-to-go") {
+        const myName = localStorage.getItem("userName") || "";
+        filtered = filtered.filter(p => (p.wantToGoUsers && p.wantToGoUsers.includes(myName)) || p.author === myName);
+      }
+
+      if (currentFilterUser) {
+        filtered = filtered.filter(p => (p.wantToGoUsers && p.wantToGoUsers.includes(currentFilterUser)) || p.author === currentFilterUser);
+        
+        const filterHeader = document.createElement('div');
+        filterHeader.id = 'userFilterHeader';
+        filterHeader.style.cssText = 'margin-bottom: 15px; padding: 15px; background: #e3f2fd; border-radius: 8px; text-align: center; border: 2px solid #2196f3;';
+        filterHeader.innerHTML = `
+          <button id="backToAllBtn" style="background: #2196f3; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3); transition: 0.2s;">
+            ← すべてのリストに戻る
+          </button>
+          <div style="margin-top: 8px; font-weight: bold; color: #1976d2;">
+            「${currentFilterUser}」さんの関連場所（${filtered.length}件）
+          </div>
+        `;
+        
+        const existingHeader = document.getElementById('userFilterHeader');
+        if (existingHeader) {
+          existingHeader.remove();
+        }
+        placesGrid.parentNode.insertBefore(filterHeader, placesGrid);
+      } else {
+        const existingHeader = document.getElementById('userFilterHeader');
+        if (existingHeader) {
+          existingHeader.remove();
+        }
+      }
+
+      filtered.sort((a, b) => {
+        if (sortOrd === "rating") {
+          return (b.rating || 0) - (a.rating || 0);
+        } else if (sortOrd === "newest") {
+          return b.createdTime - a.createdTime;
+        } else if (sortOrd === "want-to-go") {
+          const aCount = (a.wantToGoUsers || []).length;
+          const bCount = (b.wantToGoUsers || []).length;
+          return bCount - aCount;
+        } else {
+          // seasonal_manual (デフォルト)
+          if (a.orderIndex !== undefined && b.orderIndex !== undefined) return a.orderIndex - b.orderIndex;
+          
+          const currentMonth = new Date().getMonth() + 1;
+          let currentSeason = "冬";
+          if (currentMonth >= 3 && currentMonth <= 5) currentSeason = "春";
+          else if (currentMonth >= 6 && currentMonth <= 8) currentSeason = "夏";
+          else if (currentMonth >= 9 && currentMonth <= 11) currentSeason = "秋";
+
+          const getScore = (t) => {
+            if (!t) return 0;
+            if (t.includes(currentSeason)) return 10;
+            if (t.includes("いつでも") || t.includes("通年")) return 5;
+            return -1; // 違う季節はマイナス評価で下へ
+          };
+          
+          const scoreA = getScore(a.timing);
+          const scoreB = getScore(b.timing);
+          if (scoreA !== scoreB) return scoreB - scoreA;
+          
+          // want-to-go数で調整
+          const aWantCount = (a.wantToGoUsers || []).length;
+          const bWantCount = (b.wantToGoUsers || []).length;
+          if (aWantCount !== bWantCount) return bWantCount - aWantCount;
+          
+          return (b.rating || 0) - (a.rating || 0);
+        }
+      });
+
+      if (filtered.length === 0) {
+        if (currentFilterUser) {
+           placesGrid.innerHTML = "<p>関連する場所がありません。</p>";
+        } else if (viewFilter === "my-want-to-go") {
+           placesGrid.innerHTML = "<p>あなたが「行きたい」に登録した場所はまだありません。</p>";
+        } else {
+           placesGrid.innerHTML = "<p>該当する場所がありません。</p>";
+        }
+        return;
+      }
+
+      filtered.forEach(data => {
+        const colors = categoryColors[data.category] || categoryColors["その他"];
+        
+        let bgGradient = colors.bg;
+        let iconText = data.category;
+        
+        if (data.urlType === "gmap") {
+          bgGradient = "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)";
+          iconText = "📍 Google Map";
+        } else if (data.urlType === "instagram") {
+          bgGradient = "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)";
+          iconText = "📷 Instagram";
+        }
+
+        // ★ 画像がない場合はカテゴリカラーに合わせたプレースホルダーを表示
+        let imageHtml = data.imageUrl 
+          ? `<img src="${data.imageUrl}" class="thumbnail" alt="サムネイル">`
+          : `<div class="thumbnail-placeholder" style="background: ${bgGradient}">${iconText}</div>`;
+        
+        let urlText = "URLを開く";
+        if (data.urlType === "gmap") urlText = "Google Mapで開く";
+        if (data.urlType === "instagram") urlText = "Instagramで開く";
+
+        let urlHtml = "";
+        if (data.officialUrl) {
+          urlHtml = `<a href="${data.officialUrl}" class="place-url" target="_blank">🔗 公式サイト</a>`;
+        }
+        if (data.gmapUrl) {
+          urlHtml += `<a href="${data.gmapUrl}" class="place-url" target="_blank">🗺️ Mapを開く</a>`;
+        }
+        let timingHtml = data.timing ? `<div class="timing">🗓️ ${data.timing}</div>` : "";
+
+        const myName = localStorage.getItem("userName") || "";
+        const wantToGoUsers = data.wantToGoUsers || [];
+        const isWantToGo = wantToGoUsers.includes(myName);
+        const wantToGoCount = wantToGoUsers.length;
+
+        placesGrid.innerHTML += `
+          <div class="place-card" data-id="${data.id}" style="border-top-color: ${colors.tag};">
+            ${sortOrd === "seasonal_manual" && filterCat === "all" && viewFilter === "all" && !currentFilterUser ? '<div class="drag-handle">☰</div>' : ''}
+            ${imageHtml}
+            <div class="card-content">
+              <h3>${data.name}</h3>
+              ${urlHtml}
+              <div class="tags"><span class="tag" style="background-color: ${colors.tag}; color: ${colors.text || 'white'};">${data.category}</span></div>
+              ${timingHtml}
+              <div class="desc">${data.desc}</div>
+            </div>
+            <div class="card-footer">
+              <div>
+                <div style="color: #f1c40f;">${'★'.repeat(data.rating || 3)}</div>
+                <div class="author-info">投稿: <span class="clickable-author" data-author="${data.author}">${data.author}</span></div>
+              </div>
+              ${data.author === myName ? `
+                <div class="action-group">
+                  <button class="icon-btn edit-btn">✏️</button>
+                  <button class="icon-btn delete-btn">🗑️</button>
+                </div>
+              ` : ''}
+            </div>
+            
+            <div class="comment-btn-wrapper">
+              <button class="comment-btn">💬 コメント (${data.commentCount || 0})</button>
+            </div>
+
+            <div class="want-to-go-section">
+              <button class="want-btn ${isWantToGo ? 'active' : ''}" data-place-id="${data.id}">
+                ${isWantToGo ? '🙋 行きたい！取消' : '🙋 私も行きたい！'} ${wantToGoCount > 0 ? `(${wantToGoCount})` : ''}
+              </button>
+              ${wantToGoUsers.length > 0 ? `
+                <div class="want-to-go-users">
+                  ${wantToGoUsers.map(user => `<span class="want-user-tag clickable-author" data-author="${user}">${user}</span>`).join('')}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      if (sortOrd === "seasonal_manual" && filterCat === "all" && viewFilter === "all" && !currentFilterUser) {
+        if (window.placeSortable) window.placeSortable.destroy();
+        if (typeof Sortable !== "undefined") {
+          window.placeSortable = Sortable.create(placesGrid, {
+            animation: 150,
+            delay: 200, // スマホ誤作動防止（長押しでドラッグ）
+            delayOnTouchOnly: true,
+            onEnd: function () {
+              const cards = placesGrid.querySelectorAll('.place-card');
+              cards.forEach((card, index) => {
+                const id = card.dataset.id;
+                updateDoc(doc(db, "places", id), { orderIndex: index }).catch(e => console.error(e));
+                const arrItem = allPlacesArray.find(p => p.id === id);
+                if (arrItem) arrItem.orderIndex = index;
+              });
+            }
+          });
+        }
+      } else {
+        if (window.placeSortable) {
+          window.placeSortable.destroy();
+          window.placeSortable = null;
+        }
+      }
+    }
+
+    document.getElementById("filterCategory").addEventListener("change", renderPlaces);
+    document.getElementById("sortOrder").addEventListener("change", renderPlaces);
+    document.getElementById("viewFilter").addEventListener("change", renderPlaces);
+
+    document.addEventListener("click", (e) => {
+      if (e.target.id === 'backToAllBtn') {
+        currentFilterUser = null;
+        document.getElementById("viewFilter").value = "all";
+        renderPlaces();
+      }
+    });
+
+    document.getElementById("inputCategory").addEventListener("change", (e) => {
+      document.getElementById("dateGroup").style.display = "none";
+      document.getElementById("seasonGroup").style.display = "block";
+    });
+
+    const modal = document.getElementById("addModal");
+
+    function openModal(mode = "add", id = null) {
+      modal.classList.add("show");
+      document.getElementById("inputAuthor").value = localStorage.getItem("userName") || "";
+      document.getElementById("urlStatus").innerText = "";
+
+      if (mode === "add") {
+        editingId = null;
+        document.getElementById("modalTitle").innerText = "場所を追加";
+        document.getElementById("inputName").value = "";
+        document.getElementById("inputOfficialUrl").value = "";
+        document.getElementById("inputGmapUrl").value = "";
+        document.getElementById("inputImageUrl").value = "";
+        document.getElementById("inputCategory").value = "その他";
+        document.getElementById("inputRating").value = "3";
+        document.getElementById("inputDesc").value = "";
+        document.getElementById("inputDate").value = "";
+        document.getElementById("inputSeason").value = "";
+        document.getElementById("dateGroup").style.display = "none";
+        document.getElementById("seasonGroup").style.display = "block";
+        document.getElementById("inputGmapUrl").readOnly = true;
+        document.getElementById("inputGmapUrl").style.backgroundColor = "#f8f9fa";
+      } else {
+        document.getElementById("modalTitle").innerText = "場所を編集";
+        document.getElementById("inputGmapUrl").readOnly = false;
+        document.getElementById("inputGmapUrl").style.backgroundColor = "";
+      }
+    }
+
+    document.getElementById("openModalBtn").addEventListener("click", () => openModal("add"));
+    document.getElementById("closeModalBtn").addEventListener("click", () => modal.classList.remove("show"));
+
+    document.getElementById("savePlaceBtn").addEventListener("click", async () => {
+      const author = document.getElementById("inputAuthor").value;
+      let name = document.getElementById("inputName").value;
+      const officialUrl = document.getElementById("inputOfficialUrl").value;
+      const gmapUrl = document.getElementById("inputGmapUrl").value;
+      let imageUrl = document.getElementById("inputImageUrl").value;
+      const category = document.getElementById("inputCategory").value;
+      const rating = parseInt(document.getElementById("inputRating").value);
+      const desc = document.getElementById("inputDesc").value;
+      const timing = document.getElementById("inputSeason").value; 
+
+      if (!author) return alert("投稿者名は必須です！");
+
+      localStorage.setItem("userName", author);
+
+      const saveBtn = document.getElementById("savePlaceBtn");
+      saveBtn.disabled = true;
+      saveBtn.innerText = "情報取得中...";
+
+      try {
+        if (officialUrl && !imageUrl) {
+          const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(officialUrl)}`);
+          const json = await res.json();
+          if (json.status === "success") {
+            if (!name && json.data.title) name = json.data.title;
+            if (json.data.image && json.data.image.url) imageUrl = json.data.image.url;
+            else if (json.data.logo && json.data.logo.url) imageUrl = json.data.logo.url;
+          }
+        }
+
+        if (!name) {
+           alert("場所の名前は必須です！");
+           saveBtn.disabled = false;
+           saveBtn.innerText = "保存する";
+           return;
+        }
+
+        saveBtn.innerText = "保存中...";
+
+        if (editingId) {
+          await updateDoc(doc(db, "places", editingId), {
+            author, name, officialUrl, gmapUrl, imageUrl, category, rating, desc, timing
+          });
+        } else {
+          await addDoc(collection(db, "places"), {
+            author, name, officialUrl, gmapUrl, imageUrl, category, rating, desc, timing, commentCount: 0, createdAt: new Date()
+          });
+        }
+        modal.classList.remove("show");
+        loadPlaces();
+      } catch (error) {
+        console.error("保存エラー:", error);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = "保存する";
+      }
+    });
+
+    document.getElementById("inputOfficialUrl").addEventListener("blur", async (e) => {
+      const url = e.target.value.trim();
+      if (!url.startsWith("http")) return;
+
+      const statusText = document.getElementById("urlStatus");
+      statusText.innerText = "取得中...";
+      statusText.style.color = "#888";
+      
+      try {
+        const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+        const json = await res.json();
+        
+        if (json.status === "success") {
+          if (!document.getElementById("inputName").value && json.data.title) {
+            document.getElementById("inputName").value = json.data.title;
+          }
+          if (json.data.image && json.data.image.url) {
+            document.getElementById("inputImageUrl").value = json.data.image.url;
+          } else if (json.data.logo && json.data.logo.url) {
+            document.getElementById("inputImageUrl").value = json.data.logo.url;
+          }
+          statusText.innerText = "画像を取得しました！";
+          statusText.style.color = "#4ecdc4";
+        } else {
+          statusText.innerText = "画像が見つかりませんでした。";
+          statusText.style.color = "#ff6b6b";
+        }
+      } catch (err) {
+        console.error("URL取得エラー:", err);
+        statusText.innerText = "取得エラー";
+        statusText.style.color = "#ff6b6b";
+      }
+      setTimeout(() => { statusText.innerText = ""; }, 3000);
+    });
+
+    const commentModal = document.getElementById("commentModal");
+    const commentList = document.getElementById("commentList");
+
+    document.getElementById("closeCommentBtn").addEventListener("click", () => {
+      commentModal.classList.remove("show");
+      if(unsubscribeComments) unsubscribeComments();
+    });
+
+    function renderComments(snapshot) {
+      commentList.innerHTML = "";
+      
+      let docs = [];
+      if (snapshot && snapshot.docs) {
+        docs = snapshot.docs;
+      } else if (snapshot && Array.isArray(snapshot)) {
+        docs = snapshot;
+      }
+      
+      if (docs.length === 0) {
+        commentList.innerHTML = '<p style="text-align:center; color:#888;">まだコメントはありません。</p>';
+        return;
+      }
+      
+      const myName = localStorage.getItem("userName") || "";
+
+      docs.forEach(docSnap => {
+        const data = docSnap.data ? docSnap.data() : docSnap;
+        const docId = docSnap.id || 'temp';
+
+        if (!data || !data.text || !data.author) {
+          return;
+        }
+
+        let dateStr = "";
+        if (data.createdAt) {
+          try {
+            if (typeof data.createdAt.toMillis === 'function') {
+              dateStr = new Date(data.createdAt.toMillis()).toLocaleString();
+            } else if (data.createdAt instanceof Date) {
+              dateStr = data.createdAt.toLocaleString();
+            } else if (typeof data.createdAt === 'string' || typeof data.createdAt === 'number') {
+              dateStr = new Date(data.createdAt).toLocaleString();
+            }
+          } catch(e) {}
+        }
+        
+        const deleteBtnHtml = (myName === data.author) ? 
+          `<button class="comment-delete-btn" data-comment-id="${docId}">削除</button>` : '';
+
+        commentList.innerHTML += `
+          <div class="comment-item">
+            <div class="comment-header"><strong>${data.author}</strong><span>${dateStr}</span></div>
+            <div class="comment-text">${data.text}</div>
+            ${deleteBtnHtml}
+          </div>
+        `;
+      });
+
+      setTimeout(() => {
+        commentList.scrollTop = commentList.scrollHeight;
+      }, 50);
+    }
+
+    document.getElementById("placesGrid").addEventListener("click", async (e) => {
+      const card = e.target.closest(".place-card");
+      if(!card) return;
+      const id = card.dataset.id;
+
+      if (e.target.classList.contains("clickable-author")) {
+         const author = e.target.dataset.author;
+         if (author && author !== currentFilterUser) {
+           currentFilterUser = author;
+           document.getElementById("viewFilter").value = "all";
+           renderPlaces();
+         }
+         return;
+      }
+
+      if (e.target.classList.contains("want-btn")) {
+        let myName = localStorage.getItem("userName");
+        if (!myName) {
+          myName = prompt("あなたの名前を入力してください（次回から省略されます）");
+          if (!myName || !myName.trim()) {
+            return;
+          }
+          myName = myName.trim();
+          localStorage.setItem("userName", myName);
+        }
+
+        const placeData = allPlacesArray.find(p => p.id === id);
+        const wantToGoUsers = placeData?.wantToGoUsers || [];
+        const isWantToGo = wantToGoUsers.includes(myName);
+
+        try {
+          if (isWantToGo) {
+            await updateDoc(doc(db, "places", id), {
+              wantToGoUsers: arrayRemove(myName)
+            });
+          } else {
+            await updateDoc(doc(db, "places", id), {
+              wantToGoUsers: arrayUnion(myName)
+            });
+          }
+
+          const dataIndex = allPlacesArray.findIndex(p => p.id === id);
+          if (dataIndex !== -1) {
+            if (!allPlacesArray[dataIndex].wantToGoUsers) allPlacesArray[dataIndex].wantToGoUsers = [];
+            if (isWantToGo) {
+              allPlacesArray[dataIndex].wantToGoUsers = allPlacesArray[dataIndex].wantToGoUsers.filter(user => user !== myName);
+            } else {
+              allPlacesArray[dataIndex].wantToGoUsers.push(myName);
+            }
+          }
+          renderPlaces();
+        } catch (error) {
+          console.error("行きたい更新エラー:", error);
+          alert("更新に失敗しました");
+        }
+        return;
+      }
+
+      if (e.target.classList.contains("comment-btn")) {
+        currentCommentPlaceId = id;
+        commentModal.classList.add("show");
+        commentList.innerHTML = '<p style="text-align:center; color:#888;">読み込み中...</p>';
+        
+        if(unsubscribeComments) unsubscribeComments();
+
+        async function loadComments() {
+          try {
+             const testQuery = collection(db, "comments");
+             const q = query(testQuery, where("placeId", "==", id));
+             const querySnapshot = await getDocs(q);
+             
+             const sortedDocs = querySnapshot.docs.sort((a, b) => {
+                const aTime = a.data().createdAt?.toMillis ? a.data().createdAt.toMillis() : new Date(a.data().createdAt).getTime();
+                const bTime = b.data().createdAt?.toMillis ? b.data().createdAt.toMillis() : new Date(b.data().createdAt).getTime();
+                return aTime - bTime;
+             });
+             
+             const sortedSnapshot = { docs: sortedDocs };
+             renderComments(sortedSnapshot);
+
+             unsubscribeComments = onSnapshot(q, (snapshot) => {
+                renderComments(snapshot);
+             }, (error) => {
+                console.error("Real-time update error:", error);
+             });
+          } catch (error) {
+             console.error("Comment loading error:", error);
+             commentList.innerHTML = `<p style="text-align:center; color:#ff6b6b;">コメントの読み込みに失敗しました。<br>${error.message}</p>`;
+          }
+        }
+        
+        loadComments();
+        return;
+      }
+
+      const btn = e.target.closest(".icon-btn");
+      if (!btn) return;
+
+      if (btn.classList.contains("delete-btn")) {
+        if (confirm("本当に削除しますか？")) {
+          await deleteDoc(doc(db, "places", id));
+          loadPlaces();
+        }
+      } else if (btn.classList.contains("edit-btn")) {
+        const data = allPlacesArray.find(p => p.id === id);
+        
+        document.getElementById("inputAuthor").value = data.author;
+        document.getElementById("inputName").value = data.name;
+        document.getElementById("inputOfficialUrl").value = data.officialUrl || "";
+        document.getElementById("inputGmapUrl").value = data.gmapUrl || "";
+        document.getElementById("inputImageUrl").value = data.imageUrl || "";
+        document.getElementById("inputCategory").value = data.category || "その他";
+        document.getElementById("inputRating").value = data.rating || 3;
+        document.getElementById("inputDesc").value = data.desc;
+        document.getElementById("inputSeason").value = data.timing || "いつでも";
+        
+        editingId = id;
+        openModal("edit", id);
+      }
+    });
+
+    document.getElementById("sendCommentBtn").addEventListener("click", async () => {
+      const input = document.getElementById("newCommentInput");
+      const text = input.value.trim();
+      let author = localStorage.getItem("userName");
+
+      if (!author) {
+        author = prompt("あなたの名前を入力してください");
+        if (!author || !author.trim()) return;
+        author = author.trim();
+        localStorage.setItem("userName", author);
+      }
+
+      if (!text || !currentCommentPlaceId) return;
+      
+      input.value = "";
+
+      try {
+        const tempComment = {
+          author: author,
+          text: text,
+          createdAt: new Date()
+        };
+        
+        const currentComments = [];
+        const existingItems = commentList.querySelectorAll(".comment-item");
+        
+        existingItems.forEach(item => {
+          const header = item.querySelector(".comment-header");
+          const textEl = item.querySelector(".comment-text");
+          if (header && textEl) {
+             const authorMatch = header.textContent.match(/^(.*?)(?:\d{4}\/|$)/);
+             currentComments.push({
+               author: authorMatch ? authorMatch[1] : "",
+               text: textEl.textContent,
+               createdAt: new Date()
+             });
+          }
+        });
+        
+        const allComments = [...currentComments, tempComment];
+        
+        commentList.innerHTML = "";
+        allComments.forEach(comment => {
+          const myName = localStorage.getItem("userName") || "";
+          let dateStr = "";
+          const deleteBtnHtml = (myName === comment.author) ? 
+            `<button class="comment-delete-btn" data-comment-id="${comment.id || 'temp'}">削除</button>` : '';
+
+          commentList.innerHTML += `
+            <div class="comment-item">
+              <div class="comment-header"><strong>${comment.author}</strong><span>${dateStr}</span></div>
+              <div class="comment-text">${comment.text}</div>
+              ${deleteBtnHtml}
+            </div>
+          `;
+        });
+
+        setTimeout(() => {
+          commentList.scrollTop = commentList.scrollHeight;
+        }, 50);
+
+        await addDoc(collection(db, "comments"), {
+          placeId: currentCommentPlaceId,
+          author: author,
+          text: text,
+          createdAt: new Date()
+        });
+        
+        await updateDoc(doc(db, "places", currentCommentPlaceId), {
+          commentCount: increment(1)
+        });
+
+        const dataIndex = allPlacesArray.findIndex(p => p.id === currentCommentPlaceId);
+        if(dataIndex !== -1) {
+           allPlacesArray[dataIndex].commentCount = (allPlacesArray[dataIndex].commentCount || 0) + 1;
+        }
+        renderPlaces();
+
+      } catch (error) {
+        console.error("コメント送信エラー:", error);
+      }
+    });
+
+    document.getElementById("newCommentInput").addEventListener("keypress", (e) => {
+      if(e.key === "Enter") {
+        document.getElementById("sendCommentBtn").click();
+      }
+    });
+
+    commentList.addEventListener("click", async (e) => {
+      if(e.target.classList.contains("comment-delete-btn")) {
+        const commentId = e.target.dataset.commentId;
+        
+        if(confirm("このコメントを削除しますか？")) {
+           try {
+              await deleteDoc(doc(db, "comments", commentId));
+              
+              await updateDoc(doc(db, "places", currentCommentPlaceId), {
+                 commentCount: increment(-1)
+              });
+              
+              const dataIndex = allPlacesArray.findIndex(p => p.id === currentCommentPlaceId);
+              if(dataIndex !== -1) {
+                 allPlacesArray[dataIndex].commentCount = Math.max(0, (allPlacesArray[dataIndex].commentCount || 0) - 1);
+              }
+              renderPlaces();
+              
+           } catch(error) {
+              console.error("コメント削除エラー:", error);
+           }
+        }
+      }
+    });
+
+    loadPlaces();
+
+    document.getElementById("closeFreeDayBtn").addEventListener("click", () => {
+      document.getElementById("freeDayModal").classList.remove("show");
+    });
+    document.getElementById("cancelFreeDayBtn").addEventListener("click", () => {
+      document.getElementById("freeDayModal").classList.remove("show");
+    });
+
+    document.getElementById("freeDayList").addEventListener("click", async (e) => {
+      if (e.target.classList.contains("free-day-delete-btn")) {
+        const docId = e.target.dataset.docId;
+        if (confirm("この予定を削除しますか？")) {
+          try {
+            await deleteDoc(doc(db, "freeDays", docId));
+            if (calendar) loadFreeDays();
+            if (currentFreeDayDate) loadFreeDayDetails(currentFreeDayDate);
+            setTimeout(() => {
+                if(document.querySelectorAll('.free-day-item').length === 0) {
+                    document.getElementById("freeDayModal").classList.remove("show");
+                }
+            }, 1000);
+          } catch (error) {
+            console.error("空き日削除エラー:", error);
+            alert("削除に失敗しました。権限がない可能性があります。");
+          }
+        }
+      }
+    });
+
+    document.getElementById("saveFreeDayBtn").addEventListener("click", async () => {
+      const author = document.getElementById("freeDayAuthor").value.trim();
+      const memo = document.getElementById("freeDayMemo").value.trim();
+
+      if (!author) return alert("名前を入力してください！");
+      if (!currentFreeDayDate) return alert("日付が選択されていません。");
+
+      const saveBtn = document.getElementById("saveFreeDayBtn");
+      saveBtn.disabled = true;
+      saveBtn.innerText = "登録中...";
+
+      try {
+        await addDoc(collection(db, "freeDays"), {
+          date: currentFreeDayDate,
+          author: author,
+          memo: memo,
+          createdAt: new Date()
+        });
+        
+        localStorage.setItem("userName", author);
+        
+        document.getElementById("freeDayModal").classList.remove("show");
+        if (calendar) loadFreeDays();
+      } catch (error) {
+        console.error("空き日登録エラー:", error);
+        alert("登録に失敗しました。");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = "この日を登録";
+      }
+    });
+  </script>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-VjWh7nY8TYi9QKCgEVik27eNQIlgCxg&libraries=places"></script>
+</body>
+</html>
