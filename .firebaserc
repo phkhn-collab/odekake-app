@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "aipracti"
-  }
+    "default": "aipracti",
+    "efault": "aipracti"
+  },
+  "targets": {},
+  "etags": {}
 }
